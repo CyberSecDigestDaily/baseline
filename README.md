@@ -19,4 +19,6 @@ Apple Health figures arrive as small text files in the private repository's `inb
 
 Bump `CACHE` in `sw.js` and `VERSION` in `index.html` together when `index.html` changes, so installed copies pick up the new version.
 
+Tests: `node tests/baseline.test.js` (needs Playwright with Chromium). They run the page in a real browser on a fixed clock against a faked GitHub API, with synthetic data only.
+
 Font: Archivo (SIL Open Font License, see `fonts/OFL.txt`).

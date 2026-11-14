@@ -249,7 +249,7 @@ details .in{padding-bottom:14px}
 <script>
 (function(){
 "use strict";
-var VERSION="1.0.0";
+var VERSION="1.0.1";
 var SYNC={owner:"CyberSecDigestDaily",repo:"baseline-data",path:"data.json",branch:"main",inbox:"inbox"};
 var LS="baseline.v1",TK="baseline.gh.token",TH="baseline.theme";
 var API="https://api.github.com/repos/"+SYNC.owner+"/"+SYNC.repo+"/contents/";
@@ -335,8 +335,12 @@ function cfg(){
 }
 
 /* ---------- plan maths ---------- */
+/* The plan start is personal, so it only exists once the private data file has loaded. Until then no week number is claimed. */
+function planKnown(){return !!(S.data.cfg&&S.data.cfg.rampStart);}
 function weekNo(x){return Math.floor(diffDays(monday(x),monday(cfg().rampStart))/7)+1;}
-function weekLabel(m){var n=weekNo(m);return n<1?(n===0?"Warm-up week":"Before the plan"):"Week "+n;}
+function weekLabel(m){
+  if(!planKnown()){var c=monday(today());return m===c?"This week":m===addDays(c,-7)?"Last week":"Week of "+fmtShort(m);}
+  var n=weekNo(m);return n<1?(n===0?"Warm-up week":"Before the plan"):"Week "+n;}
 function setTargets(x){var w=Math.max(1,weekNo(x)),r=cfg().ramp,t=r[0],i;for(i=0;i<r.length;i++)if(r[i].week<=w)t=r[i];return t;}
 function day(x){return S.data.days[x]||{};}
 function setsDone(x){var d=day(x),t=setTargets(x);if(d.s&&d.s.strength)return true;return (d.pu||0)>=t.press&&(d.pl||0)>=t.pull;}
@@ -363,12 +367,16 @@ function weekStats(m){
     floor:!need.run&&!need.strength&&!need.sets,full:run>=C.full.run&&str>=C.full.strength&&sets>=C.full.sets,ci:ci};
 }
 function verdict(W){
-  var t=today(),cur=monday(t)===W.mon,past=W.mon<monday(t),needs=[];
+  var t=today(),cur=monday(t)===W.mon,past=W.mon<monday(t),pre=planKnown()&&weekNo(W.mon)<1,needs=[];
   if(W.need.run)needs.push(plural(W.need.run,"run"));
   if(W.need.strength)needs.push(plural(W.need.strength,"strength session"));
   if(W.need.sets)needs.push(plural(W.need.sets,"set day"));
   if(W.full)return {h:"Full plan done",s:"Every planned session and set day is in."};
   if(W.floor)return {h:"Floor cleared",s:cur?"This week counts as on-plan. Anything more is a bonus.":"This week counted as on-plan."};
+  /* Warm-up and earlier weeks: a cleared floor still counts, a missed one never counts against you */
+  if(pre){if(past)return {h:"Not counted",s:"Practice before Week 1, so it doesn't count against you."};
+    var w1=monday(cfg().rampStart);
+    return {h:"Practice week",s:"Nothing counts until Week 1 starts "+(diffDays(w1,t)===1?"tomorrow":"on "+fmtDay(w1))+". Anything logged now is a head start."};}
   if(past)return {h:"Below the floor",s:"Short by "+joinList(needs)+"."};
   if(!cur)return {h:"Not started",s:"The floor is "+floorText()+"."};
   var left=8-wd(t);
@@ -881,7 +889,7 @@ function viewSetup(){
     h("div",{class:"kv"},h("span",{text:"Floor week"}),h("span",{text:floorText()})),
     h("div",{class:"kv"},h("span",{text:"Full week"}),h("span",{text:[1,2,3,4,5,6,7].filter(function(i){return C.plan[i];}).map(function(i){return DAYS[i-1].slice(0,3)+" "+KINDS[C.plan[i]].low;}).join(", ")})),
     C.ramp.map(function(r,i){var nx=C.ramp[i+1];return h("div",{class:"kv"},h("span",{text:"Sets, "+(nx&&nx.week-1>r.week?"weeks "+r.week+" to "+(nx.week-1):"week "+r.week+(nx?"":" onwards"))}),h("span",{text:r.press+" press-ups, "+r.pull+" pull-ups"}));}),
-    h("div",{class:"kv"},h("span",{text:"Week 1 starts"}),h("span",{text:fmtShort(monday(C.rampStart))+" "+parse(C.rampStart).getFullYear()})),
+    planKnown()?h("div",{class:"kv"},h("span",{text:"Week 1 starts"}),h("span",{text:fmtShort(monday(C.rampStart))+" "+parse(C.rampStart).getFullYear()})):null,
     T.kcal?h("div",{class:"kv"},h("span",{text:"Food"}),h("span",{text:"about "+thousands(T.kcal)+" kcal, "+T.protein+" g protein, "+T.fibre+" g fibre"})):null,
     T.maint?h("div",{class:"kv"},h("span",{text:"Sleep under "+T.sleepMin+" h average"}),h("span",{text:"eat about "+thousands(T.maint)+", keep training"})):null));
   if(!S.data.cfg||!Object.keys(S.data.cfg).length)v.appendChild(h("p",{class:"note",text:"These are the generic defaults. Your own targets load from the private repository once this device is connected."}));

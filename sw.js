@@ -1,6 +1,6 @@
 // Baseline service worker: serves the app shell from cache so it opens instantly and offline,
 // and refreshes the cache in the background. Requests to other origins (api.github.com) are never touched.
-const CACHE = 'baseline-1.0.0';
+const CACHE = 'baseline-1.0.1';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './fonts/archivo-latin-wdth-normal.woff2',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png'];
 
